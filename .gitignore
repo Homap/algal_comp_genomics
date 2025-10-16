@@ -1,0 +1,16 @@
+1_data/  
+A_te_annotation/data/
+A_te_annotation/results/
+A_te_annotation/.snakemake
+B_protein_annotation/data/
+B_protein_annotation/results/
+B_protein_annotation/.snakemake
+C_homology_inference/data/
+C_homology_inference/results/
+C_homology_inference/.snakemake
+D_tree_inference/data/
+D_tree_inference/results/
+D_tree_inference/.snakemake  
+E_cell_cycle/data/
+E_cell_cycle/results/
+E_cell_cycle/.snakemake
