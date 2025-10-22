@@ -1,0 +1,83 @@
+---
+title: "Your Paper Title"
+author:
+  - name: "Homa Papoli Yazdi"
+    affiliation: "Your Institution"
+    email: "homa.papoli_yazdi@biol.lu.se"
+date: today
+format:
+  docx:
+    toc: true
+    number-sections: true
+#    reference-doc: style_reference.docx  # optional: use a custom Word style file
+  pdf:
+    toc: true
+    number-sections: true
+    geometry:
+      - margin=1in
+    fontsize: 12pt
+    linestretch: 1.5
+  html:
+    toc: true
+    toc-depth: 2
+    theme: cosmo
+    number-sections: true
+bibliography: references.bib
+#csl: nature.csl  # or another style, e.g. apa.csl, science.csl
+---
+
+## Introduction
+
+Multicellularity has evolved independently across the tree life (number of times multicellularity arose citation). There are certain phenotypes associated with all clonal multicellular organisms. All multicellular organisms are composed of cells connected to each other by various mechanisms (cell biology multicellularity citation). A common feature of these cell groups is that cell cycle within each cell should be managed in a way that produces a group with limited cell number which is stable for a specific period of time leading to the group to be under selection (theory citation). With increasing complexity, cells must follow more sets of rules in terms of when and where they can divide or whether they are allowed to divide in this generation or if they can contribute to the next generation (citation about control of cell division and differentiation. Intro Figure 1A). It is unknown whether and if so, how, changes in the control of cell cycle machinery contributed to the evolution of multicellularity.
+
+Cell cycle is the process in which a cell goes through stages of growth, DNA synthesis, nuclear and cytoplasmic division (a general cell cycle citation. Intro Figure 1B). There are variations to this sequence of events across organisms and across different cell types (citation on diversity of cell division). Despite this, there are certain rules in cell division which needs to be strictly followed. Cells should only divide when conditions are favorable, they should grow large enough to ascertain viable daughter cells, DNA synthesis should be done once and there should be a high fidelity in the transmission of genetic information (citation for cell cycle check points). These features are common between unicellular and multicellular organisms. 
+
+[Here in the introduction, talk about cases where we know changes in the sequence of a  cell cycle gene leads to phenotypic change in cell cycle. I can look for cell cycle mutants in which we know certain change in gene sequence leads to change in cell cycle. This can create the argument that looking at evolutionary changes in these groups of genes make sense since from mutational studies, we know they can change cell division phenotype. Particularly, if there are evidence in multicellular organisms. Also, in cancer, mutations on cell cycle genes and how they impact the cell division phenotype in the multicellular organism. [Figure connecting the rational of sequence change to function change.]]
+
+The difference between unicellular and multicellular organisms is that in multicellular organisms, cell cycles should also progress in a way that lead to production of cell groups with certain cell number and potentially, division of labour (citation for cell cycle in multicellular organisms). This is a system where we have a core conserved machinary between unicellular and multicellular organisms but additional control needs to be added to this machinery. In this study, we focus on genes associated with functions in cell cycle and study their sequence evolution across independent transitions to multicellularity. Our study system is the green and red algae within the Archaeplastida. We first reconstructed the phylogenetic tree to identify independent instances of evolution of multicellularity and we investigated gene family evolution and measured natural selection in cell cycle genes. This allowed us to distinguish lineage-specific changes in cell cycle from those associated with the evolution multicellularity. 
+
+## Materials and Methods
+### Study design and data collection
+In this study, we needed to infer homology across gene sets in order to infer the phylogenetic tree and analyse cell cycle related genes. To do that, we collected all publicly available genomes of Archaeplastida (here say the search terms used) (total number) as of (date of data download). We decided to have all genomes passing filtering quality becomes it allowed for better inference of ancesral states. In additional to publicly available data, we generated data for X number of species. We assembled the reads (SI). We applied a set of filtering criteria to all genomes, publicly and de-novo sequenced. This left us with X number of species of which Y were unicellular and Z were multicellular (SI table). Since these genomes are produced by a diverse set of methods and groups, we annotated all these genomes and took Chlamydomonas reinhardtii's annotation as positive control (SI). X number of genomes passed the filtering criteria for genome and annotation of which Y were unicellular and Z were multicellular which we used in this work (SI table).
+
+SI -> 
+- Genome assembly method in Supplementary material
+- Genome filtering and selection
+End with saying the total number and the number of unicellular and multicellular species. And then
+- SI table of genomes with stats.
+- Genome annotation and quality control 
+- SI table of annotation statistics
+
+### Selection of genes associated with functions in cell cycle
+We selected cell cycle associated genes based on their annotation or association to cell cycle processes in KEGG pathways. Although cell cycle regulatory logic is conserved across eurkaryotes, different genes are employed across different lineages. Since we work with Archaeplastida and *Chlamydomonas reinhardtii* is the model organism to study cell cycle, we also used information on cell cycle mutants on this species (Ross citation on Chlamy cell cycle genes). This gave us X number of genes (SI Table). The network of these genes (protein-protein interactions and the direction of interaction) have been inferred molecular studies (SI figure) and the data by Dinah et al. 
+- Table of cell cycle genes and the source of functional information, impact on cell cycle.
+
+### Finding homologous sequences
+We used OrthoFinder (citation) to infer homology. How we ran this program goes here. We selected single-copy orthologs for phylogenetic tree inference (SI table) and homology inference of cell cycle genes for molecular evolutionary analyses.
+- SI table of single-copy orthologs for tree reconstruction
+- SI table of homologous cell cycle related genes
+
+### Tree reconstruction
+We aligned sequences in protein format using MAFFT (ref) and converted the aligned sequences to nucleotide using PAL2NAL (ref). Here assess third codon position and symmetry test. Alignments were filtered using ClipKit (ref). Genes were concatenated using AMAS (ref). We chose the best set of partitions and their corresponding substitution models in IQ-TREE2 using MFP+MERGE option. The best-chosen partition and their corresponding model are reported in the Supplementary Material. The maximum likelihood tree was inferred with 1000 bootstraps. The concatenated ML tree from the unpartitioned analysis was used as a starting tree for generating an ultrametric tree in BEAST v2.7.3 (Bouckaert et al. 2019). We set the general-time reversible as our substitution model, and gamma and invariant sites as our rate heterogeneity model. We used a relaxed clock model and a birth-death tree prior. We ran two independent MCMC chains, each 10 million in length and logging every 1000. The runs were inspected in Tracer v. 1.7.1 (Rambaut et al. 2018), and we verified that ESS was greater than 200 for all parameters. We combined the two runs in LogCombiner v2.7.4, removing 10% of each chain as burnin. The maximum clade credibility tree was finally generated in TreeAnnotator v2.7.4 and used in downstream analyses.
+- SI table of the single copy orthologous sequences used for tree reconstruction
+- alignment files
+
+### Gene family evolution analyses
+To reconstruct the evolutionary history of each gene family, maximum-likelihood gene trees were reconciled with the reference species tree using GeneRax (v2.0; Morel et al., 2020). GeneRax jointly models gene duplication, loss, and sequence evolution under a hierarchical likelihood framework, allowing identification of lineage-specific duplication and loss events along the species phylogeny. Gene family expansion and contraction rates were further estimated using CAFE 5 (Mendes et al., 2021), which implements a stochastic birth–death model of gene copy number evolution. Family size matrices derived from OrthoFinder output were used as input to CAFE to detect significant deviations from neutral rates of gain and loss.
+
+### Selection analyses
+Protein-coding sequences for each gene family were aligned using PRANK (v.170427; Löytynoja & Goldman, 2008) with the -codon option to preserve reading frame and accurately distinguish insertions from deletions. Poorly aligned regions and terminal gaps were removed to minimize alignment artifacts. The resulting codon alignments and corresponding gene trees were analyzed with HyPhy (v2.5; Pond et al., 2020) to identify signatures of natural selection. We applied a suite of codon-based likelihood models to capture both pervasive and episodic selection. Site-level analyses were performed using FEL (Fixed Effects Likelihood) and MEME (Mixed Effects Model of Evolution) to detect individual codon sites evolving under diversifying selection. Branch-level and branch-site tests were conducted using aBSREL (adaptive Branch-Site Random Effects Likelihood) to identify specific lineages with episodic positive selection, and RELAX to quantify shifts in selection intensity associated with multicellular lineages. Model comparisons were evaluated using likelihood ratio tests with multiple-testing correction across genes.
+
+### Phylogenetic comparative analyses
+To test for evolutionary associations between gene family characteristics and the emergence of multicellularity, we employed phylogenetic comparative methods implemented in R using the packages ape, phytools, and caper. Continuous traits such as gene copy number, duplication rate, or sequence divergence were modeled as dependent variables, and multicellularity was coded as a binary or categorical predictor depending on the lineage. Phylogenetic generalized least squares (PGLS) and phylogenetic ANOVA were used to account for shared ancestry when assessing correlations between gene family evolution and transitions to multicellular organization. To investigate links between selective pressures and the evolution of multicellularity, selection parameters (e.g., ω ratios or RELAX k-values) were summarized per lineage and analyzed using phylogenetic comparative methods in R. Phylogenetic generalized least squares (PGLS) and ancestral state reconstructions were used to test whether transitions to multicellularity were associated with systematic shifts in selection intensity or diversification across gene families.
+
+## Results
+
+Figure 1. Introductory Figure describing the idea
+Figure 2. Phylogenetic tree showing independent transitions to multicellularity. Bonus: A measurement connected to cell network topology or cell cycle across a group of species.
+Figure 3. A Figure summarising gene family evolution and then selection analyses
+Figure 4. A Figure connecting selection analyses to functional consequences.
+
+## Discussion
+
+## References
