@@ -1,0 +1,179 @@
+import pandas as pd
+import sys
+import os
+import re
+from pathlib import Path
+sys.path.append("workflow/scripts")
+from make_genome_symlinks_and_samples import create_symlink
+
+configfile: "config/config.yaml"
+localrules: all, assembly_stats, merge_assembly_stats, filter_samples_by_n50, filter_busco
+
+# Only run if the symlink directory doesn't exist or the samples file is missing
+if not os.path.exists(config["genome_links_dir"]) or not os.path.exists("data/samples.tsv"):
+    create_symlink(
+        config["genome_root"],
+        config["genome_links_dir"],
+        config["genome_pattern"],
+        config["samples_tsv"]
+    )
+
+SAMPLES_DF = pd.read_csv("data/samples.tsv", sep="\t")
+ASM = dict(zip(SAMPLES_DF["sample"], SAMPLES_DF["assembly"]))
+SAMPLES = SAMPLES_DF["sample"].tolist()
+
+def get_filtered_samples(wildcards):
+    """
+    This function will be re-evaluated after 'filter_samples_by_n50' finishes.
+    """
+    # This 'checkpoints' call triggers the dependency re-evaluation
+    checkpoint_output = checkpoints.filter_samples_by_n50.get().output[0]
+    # Read the updated list
+    df = pd.read_csv(checkpoint_output, sep="\t")
+    # Return the actual file paths needed for rule all
+    return df["sample"].tolist()
+
+rule all:
+    input:
+        "data/samples_postFilter2.tsv"
+
+
+rule assembly_stats:
+    input:
+        fasta="data/external_genomes/{genome_seq}.fna"
+    output:
+        tsv=temp("results/assembly_stats/{genome_seq}.tsv")
+    shell:
+        "python workflow/scripts/assembly_stats.py --fasta {input.fasta} --out {output.tsv}"
+
+rule merge_assembly_stats:
+    input:
+        expand("results/assembly_stats/{genome_seq}.tsv", genome_seq=SAMPLES)
+    output:
+        compiled_tsv="results/assembly_stats/assembly_stats.tsv"
+    run:
+        with open(output.compiled_tsv, "w") as out:
+            for i, f in enumerate(input):
+                with open(f) as infile:
+                    if i == 0:
+                        out.write(infile.read())
+                    else:
+                        next(infile) # skip header
+                        out.write(infile.read())
+
+# Based on the median gene length in C. reinahrdtii, remove assemblies whose N50 is shorter than the median gene length (<4300)
+checkpoint filter_samples_by_n50:
+    input:
+        samples="data/samples.tsv",
+        stats="results/assembly_stats/assembly_stats.tsv"
+    output:
+        filtered_data="data/samples_postFilter1.tsv"
+    run:
+        import pandas as pd
+
+        # Read inputs
+        samples = pd.read_csv(input.samples, sep="\t")
+        stats = pd.read_csv(input.stats, sep="\t")
+
+        bad_assemblies = (stats.loc[stats["n50"] < 4300, "assembly"].astype(str).str.replace(r"\.fna$", "", regex=True).tolist())
+
+        # Remove rows where sample is in bad_assemblies
+        filtered_samples = samples[~samples["sample"].isin(bad_assemblies)] # ~ is the logical NOT operator in pandas.
+        filtered_samples.to_csv(output.filtered_data, sep="\t", index=False)
+
+rule busco:
+    input:
+        fasta="data/external_genomes/{sample}.fna"
+    output:
+        summary="results/busco/{sample}/short_summary.specific.chlorophyta_odb10.{sample}.txt"
+    threads: 10
+    resources:
+        mem_mb = 24000,
+        runtime = "24h"
+    log:
+        "logs/busco/{sample}.log"
+    params:
+        lineage="chlorophyta_odb10",
+        out_dir = "results/busco/{sample}"
+    conda:
+        "envs/qc_busco.yaml"
+    shell:
+        r"""
+        # Remove the directory if it exists to satisfy BUSCO's requirements
+        rm -rf {params.out_dir}
+
+        busco \
+          -i {input.fasta} \
+          -m genome \
+          -l {params.lineage} \
+          -o {wildcards.sample} \
+          --out_path results/busco \
+          --cpu {threads} > {log} 2>&1
+        """
+
+rule compile_busco_table:
+    input:
+        summaries=expand(
+            "results/busco/{sample}/short_summary.specific.chlorophyta_odb10.{sample}.txt",
+            sample=get_filtered_samples
+        )
+    output:
+        tsv="results/busco/busco_summary_table.tsv"
+    run:
+        # regex to capture the % values
+        pat = re.compile(
+            r"C:(?P<C>\d+(\.\d+)?)%\[S:(?P<S>\d+(\.\d+)?)%,D:(?P<D>\d+(\.\d+)?)%\],"
+            r"F:(?P<F>\d+(\.\d+)?)%,M:(?P<M>\d+(\.\d+)?)%"
+        )
+
+        with open(output.tsv, "w") as out:
+            out.write("\t".join([
+                "sample",
+                "C",
+                "C_S",
+                "C_D",
+                "F",
+                "M"
+            ]) + "\n")
+
+            for f in input.summaries:
+                txt = Path(f).read_text()
+
+                m = pat.search(txt)
+                if not m:
+                    raise ValueError(f"Could not find BUSCO summary line in {f}")
+
+                sample = ".".join(Path(f).name.split(".")[-3:-1])
+                out.write("\t".join([
+                    sample,
+                    m.group("C"),
+                    m.group("S"),
+                    m.group("D"),
+                    m.group("F"),
+                    m.group("M"),
+                ]) + "\n")
+
+
+rule filter_busco:
+    input:
+        tsv="results/busco/busco_summary_table.tsv"
+    output:
+        "results/busco/genomes_to_remove.tsv"
+    conda:
+        "envs/r.yaml"
+    shell:
+        """
+        Rscript workflow/scripts/busco_filtering.R {input.tsv} {output}
+        """
+
+rule update_sample_list:
+    input:
+        remove_list = "results/busco/genomes_to_remove.tsv",
+        sample_list = "data/samples_postFilter1.tsv"
+    output:
+        "data/samples_postFilter2.tsv"
+    shell:
+        "grep -v -f {input.remove_list} {input.sample_list} > {output}"
+
+
+        
