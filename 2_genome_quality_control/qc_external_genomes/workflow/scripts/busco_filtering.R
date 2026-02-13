@@ -1,6 +1,7 @@
 library(ggplot2)
 library(dplyr)
 library(ggrepel)
+library(data.table)
 
 args <- commandArgs(trailingOnly = TRUE)
 if (length(args) < 2) {
@@ -9,6 +10,7 @@ if (length(args) < 2) {
 
 input_file <- args[1]
 output_file <- args[2]
+output_file2 <- args[3]
 
 # load
 busco <- fread(input_file)
@@ -48,5 +50,7 @@ ggplot(pca_df, aes(PC1, PC2, color = cluster)) +
     y = paste0("PC2 (", pc2_perc, "%)")
   )
 
-
+cluster1_assemblies <- busco$sample[busco$cluster == 1]
+cluster2_assemblies <- busco$sample[busco$cluster == 2]
 writeLines(cluster1_assemblies, output_file)
+writeLines(cluster2_assemblies, output_file2)

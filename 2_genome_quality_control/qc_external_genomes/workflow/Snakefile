@@ -156,18 +156,20 @@ rule filter_busco:
     input:
         tsv="results/busco/busco_summary_table.tsv"
     output:
-        "results/busco/genomes_to_remove.tsv"
+        remove_list="results/busco/genomes_to_remove.tsv",
+        keep_list="results/busco/genomes_to_keep.tsv"
     conda:
         "envs/r.yaml"
     shell:
         """
-        Rscript busco_filtering.R {input.tsv} {output}
+        Rscript workflow/scripts/busco_filtering.R {input.tsv} {output.remove_list} {output.keep_list}
         """
 
 rule update_sample_list:
     input:
         remove_list = "results/busco/genomes_to_remove.tsv",
-        sample_list = "data/samples_postFilter1.tsv"
+        sample_list = "data/samples_postFilter1.tsv",
+        keep_list = "results/busco/genomes_to_keep.tsv"
     output:
         "data/samples_postFilter2.tsv"
     shell:
