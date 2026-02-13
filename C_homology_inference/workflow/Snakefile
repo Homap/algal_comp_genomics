@@ -1,0 +1,112 @@
+localrules: rename_proteome, primary_transcript
+
+import json
+import re
+from collections import defaultdict
+
+ASSEMBLY_JSONL = "workflow/assembly_data_report.jsonl"
+RAW_PROT_GLOB = "data/algal_proteome/{acc}.protein.faa"
+RENAMED_DIR = "data/algal_proteomes_species"
+PRIMARY_DIR = f"{RENAMED_DIR}/primary_transcripts"
+
+def slugify_species(name: str) -> str:
+    s = name.strip()
+    s = re.sub(r"\s+", "_", s)
+    s = re.sub(r"[^A-Za-z0-9_]+", "", s)
+    return s
+
+# ----------------------------
+# Build accession -> species mapping
+# ----------------------------
+acc2species = {}
+with open(ASSEMBLY_JSONL) as f:
+    for line in f:
+        if not line.strip():
+            continue
+        rec = json.loads(line)
+        acc = rec.get("accession") or rec.get("currentAccession")
+        org = (rec.get("organism") or {}).get("organismName")
+        if acc and org:
+            acc2species[acc] = slugify_species(org)
+
+ACCESSIONS = glob_wildcards(RAW_PROT_GLOB).acc
+
+# Handle duplicates
+species_to_accs = defaultdict(list)
+for acc in ACCESSIONS:
+    if acc in acc2species:
+        species_to_accs[acc2species[acc]].append(acc)
+
+acc2outname = {}
+for species, accs in species_to_accs.items():
+    if len(accs) == 1:
+        acc2outname[accs[0]] = species
+    else:
+        for acc in accs:
+            acc2outname[acc] = f"{species}__{acc}"
+
+# Reverse mapping for Snakemake wildcards
+name2acc = {v: k for k, v in acc2outname.items()}
+print("Mapped proteomes:", len(name2acc))
+
+RENAMED_PROTEOMES = [
+    f"{RENAMED_DIR}/{name}.protein.faa" for name in name2acc.keys()
+]
+
+PRIMARY_PROTEOMES = [
+    f"{PRIMARY_DIR}/{name}.protein.faa" for name in name2acc.keys()
+]
+
+# ----------------------------
+# Rules
+# ----------------------------
+rule all:
+    input:
+        "results/orthofinder/Orthogroups/Orthogroups.txt"
+
+rule rename_proteome:
+    input:
+        lambda wc: f"data/algal_proteome/{name2acc[wc.name]}.protein.faa"
+    output:
+        f"{RENAMED_DIR}/{{name}}.protein.faa"
+    log:
+        "logs/rename_proteome/{name}.log"
+    shell:
+        r"""
+        cp -fL {input} {output} &> {log}
+        """
+
+rule primary_transcript: # Check on this.
+    input:
+        f"{RENAMED_DIR}/{{name}}.protein.faa"
+    output:
+        f"{PRIMARY_DIR}/{{name}}.protein.faa"
+    log:
+        "logs/primary_transcript/{name}.log"
+    conda:
+        "envs/orthofinder.yaml"
+    shell:
+        r"""
+        python $(which primary_transcript.py) {input} 2> {log}
+        """
+
+rule orthofinder_run:
+    input:
+        expand(f"{PRIMARY_DIR}/{{name}}.protein.faa", name=name2acc.keys())
+    output:
+        "results/orthofinder/Orthogroups/Orthogroups.txt"
+    params:
+        "results/orthofinder"
+    resources:
+        threads = 15,
+        mem_mb = 24000,
+        runtime = "24h"
+    log:
+        "logs/orthofinder.log"
+    conda:
+        "envs/orthofinder.yaml"
+    shell:
+        r"""
+        orthofinder -t {resources.threads} -f {PRIMARY_DIR} -o {params} &> {log}
+        """
+
