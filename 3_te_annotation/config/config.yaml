@@ -1,0 +1,4 @@
+genome_root: "../1_data/external/data/chlorophyta/ncbi_dataset/data"
+genome_links_dir: "data/external_genomes"
+genome_pattern: "*_genomic.fna"
+samples_tsv: "../2_genome_quality_control/filtered_genomes_test.tsv"
