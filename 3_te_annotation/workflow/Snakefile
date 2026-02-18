@@ -1,0 +1,46 @@
+import pandas as pd
+import sys
+import os
+import re
+from pathlib import Path
+sys.path.append("workflow/scripts")
+from make_genome_symlinks_and_samples import create_symlink
+
+configfile: "config/config.yaml"
+localrules: all
+
+# Only run if the symlink directory doesn't exist or the samples file is missing
+if not os.path.exists(config["genome_links_dir"]):
+    create_symlink(
+        config["genome_root"],
+        config["genome_links_dir"],
+        config["genome_pattern"],
+        config["samples_tsv"]
+    )
+
+SAMPLES_DF = pd.read_csv(config["samples_tsv"], sep="\t")
+ASM = dict(zip(SAMPLES_DF["sample"], SAMPLES_DF["assembly"]))
+SAMPLES = SAMPLES_DF["sample"].tolist()
+
+rule all:
+    input:
+        expand("results/earlGrey/{sample}EarlGrey/{sample}_summaryFiles", sample = SAMPLES)
+
+rule earlgrey:
+    input:
+        assembly = "data/external_genomes/{sample}.fna"
+    output:
+        earlgrey = directory("results/earlGrey/{sample}EarlGrey/{sample}_summaryFiles")
+    params:
+        output_dir = "results/earlGrey",
+        rm_searchterm = "chlorophyta"
+    threads: 10
+    resources:
+        mem_mb = 24000,
+        runtime = "48h"
+    conda:
+        "envs/earlgrey.yaml"
+    shell:
+        """
+        earlGreyLibConstruct -g {input.assembly} -s {wildcards.sample} -o {params.output_dir} -t {threads} -r {params.rm_searchterm} -c yes -m yes -d yes -e yes
+        """
